@@ -1,0 +1,9 @@
+creating directory to store logs.
+
+mkdir -p cowrie/log dionaea/log glastopf/log elk/log wireshark/capture
+
+docker-compose up -d
+
+docker compose down
+
+docker exec -it wireshark_container_id tshark -i eth0 -w /capture/traffic.pcap

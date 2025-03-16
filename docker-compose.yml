@@ -1,0 +1,74 @@
+services:
+  cowrie:
+    image: cowrie/cowrie:latest
+    ports:
+      - "2222:2222"
+    volumes:
+      - ./cowrie/log:/cowrie/cowrie-git/var/log/cowrie  # Correct log path
+    networks:
+      - honeynet
+
+  dionaea:
+    image: dtagdevsec/dionaea:24.04.1
+    ports:
+      - "21:21"
+      - "42:42"
+      - "135:135"
+      - "443:443"
+      - "445:445"
+      - "3306:3306"
+      - "5060:5060"
+      - "5061:5061"
+    volumes:
+      - ./dionaea/log:/var/log/dionaea
+    networks:
+      - honeynet
+
+  glastopf:
+    image: stingar/glastopf:1.8
+    ports:
+      - "80:80"
+    volumes:
+      - ./glastopf/log:/var/log/glastopf
+    networks:
+      - honeynet
+
+  elk:
+    image: sebp/elk:latest
+    ports:
+      - "5601:5601"
+      - "9200:9200"
+      - "5044:5044"
+    volumes:
+      - ./elk/log:/var/log/elk
+      - ./elk/logstash/config/logstash.conf:/etc/logstash/conf.d/logstash.conf:ro  # Mount custom Logstash config
+    environment:
+      - ES_JAVA_OPTS=-Xmx256m -Xms256m
+    networks:
+      - honeynet
+
+  wireshark:
+    image: linuxserver/wireshark:latest
+    ports:
+      - "9999:9999"
+    volumes:
+      - ./wireshark/capture:/capture
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.17.0
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./cowrie/log:/cowrie_logs:ro  # Updated Cowrie log path
+      - ./dionaea/log:/dionaea_logs:ro
+      - ./glastopf/log:/glastopf_logs:ro
+    depends_on:
+      - elk
+    networks:
+      - honeynet
+
+networks:
+  honeynet:
+    driver: bridge
